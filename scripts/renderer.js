@@ -4,6 +4,16 @@ class Renderer {
     // canvas:              object ({id: __, width: __, height: __})
     // limit_fps_flag:      bool 
     // fps:                 int
+    generateCircleVertices(numSides, circleRadius) {
+        const circleVertices = [];
+        for (let i = 0; i < numSides; i++) {
+            const angle = (i / numSides) * 2 * Math.PI;
+            const x = 400 + circleRadius * Math.cos(angle);
+            const y = 300 + circleRadius * Math.sin(angle);
+            circleVertices.push(CG.Vector3(x, y, 1));
+        }
+        return circleVertices;
+    }
     constructor(canvas, limit_fps_flag, fps) {
         this.canvas = document.getElementById(canvas.id);
         this.canvas.width = canvas.width;
@@ -15,21 +25,36 @@ class Renderer {
         this.start_time = null;
         this.prev_time = null;
 
+        const numSides = 32;
+        const circleRadius = 50;
+
         this.models = {
             slide0: [
                 // example model (diamond) -> should be replaced with actual model
                 {
-                    vertices: [
-                        CG.Vector3(400, 150, 1),
-                        CG.Vector3(500, 300, 1),
-                        CG.Vector3(400, 450, 1),
-                        CG.Vector3(300, 300, 1)
-                    ],
-                    transform: null
+                    vertices: this.generateCircleVertices(numSides, circleRadius),
+                    transform: CG.mat3x3Identity
                 }
             ],
-            slide1: [],
-            slide2: [],
+            slide1: [{vertices: [
+                CG.Vector3(400, 150, 1),
+                CG.Vector3(500, 300, 1),
+                CG.Vector3(400, 450, 1),
+                CG.Vector3(300, 300, 1)
+            ],
+                    transform:CG.mat3x3Identity }],
+            slide2: [{vertices: [
+                CG.Vector3(400, 150, 1),
+                CG.Vector3(450, 225, 1),
+                CG.Vector3(500, 300, 1),
+                CG.Vector3(450, 375, 1),
+                CG.Vector3(400, 450, 1),
+                CG.Vector3(350, 375, 1),
+                CG.Vector3(350, 225, 1),
+                CG.Vector3(300, 300, 1)
+                
+            ],
+                    transform:CG.mat3x3Identity}],
             slide3: []
         };
     }
@@ -83,9 +108,19 @@ class Renderer {
         this.prev_time = timestamp;
     }
 
+    
+
     //
     updateTransforms(time, delta_time) {
-        // TODO: update any transformations needed for animation
+        const model = this.models[`slide${this.slide_idx}`][0];
+        const transform = model.transform;
+        
+        if (transform) {
+            // Apply the transformation to each vertex of the model
+            for (let i = 0; i < model.vertices.length; i++) {
+                model.vertices[i] = transform(model.vertices[i], time, delta_time);
+            }
+        }
     }
     
     //
@@ -123,7 +158,8 @@ class Renderer {
     drawSlide1() {
         // TODO: draw at least 3 polygons that spin about their own centers
         //   - have each polygon spin at a different speed / direction
-        
+        let teal = [0, 128, 128, 255];
+        this.drawConvexPolygon(this.models.slide1[0].vertices, teal);
         
     }
 
@@ -133,6 +169,8 @@ class Renderer {
         //   - have each polygon grow / shrink different sizes
         //   - try at least 1 polygon that grows / shrinks non-uniformly in the x and y directions
 
+        let teal = [0, 128, 128, 255];
+        this.drawConvexPolygon(this.models.slide2[0].vertices, teal);
 
     }
 
@@ -142,7 +180,8 @@ class Renderer {
         //   - animation should involve all three basic transformation types
         //     (translation, scaling, and rotation)
         
-        
+        let teal = [0, 128, 128, 255];
+        this.drawConvexPolygon(this.models.slide3[0].vertices, teal);
     }
     
     // vertex_list:  array of object [Matrix(3, 1), Matrix(3, 1), ..., Matrix(3, 1)]
@@ -164,3 +203,4 @@ class Renderer {
 };
 
 export { Renderer };
+
