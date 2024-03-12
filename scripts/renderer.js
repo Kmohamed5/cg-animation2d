@@ -180,19 +180,37 @@ class Renderer {
             });
         }
         if (this.slide_idx === 2) {
-            // Define constants for scaling
             const scaleSpeed = 0.0005; // Control the rate of scale change per millisecond
-            // Adjust maxScale to ensure the polygon does not grow too big
-            const maxScale = 1.2; // Adjusted maximum scale factor to prevent exceeding screen size
-            const minScale = 0.8; // Adjust if you also want to change the minimum size
-        
+            const maxScaleFactor = 1.2; // Adjusted maximum scale factor to prevent exceeding screen size
+            const minScaleFactor = 0.8; // Adjust if you also want to change the minimum size
+    
             this.models.slide2.forEach((model, index) => {
                 // Initialize isGrowing and currentScale if they don't exist
                 if (model.isGrowing === undefined) {
                     model.isGrowing = true; // Default to growing
-                    model.currentScale = (maxScale + minScale) / 2; // Starting scale is midway between min and max
+                    model.currentScale = 1.0; // Starting scale is 1.0
+    
+                    // Calculate the initial center of the shape
+                    model.center = { x: 0, y: 0 };
+                    model.vertices.forEach(vertex => {
+                        model.center.x += vertex.values[0][0];
+                        model.center.y += vertex.values[1][0];
+                    });
+                    model.center.x /= model.vertices.length;
+                    model.center.y /= model.vertices.length;
+    
+                    // Calculate the initial distances from the center for each vertex
+                    model.distances = model.vertices.map(vertex => {
+                        const dx = vertex.values[0][0] - model.center.x;
+                        const dy = vertex.values[1][0] - model.center.y;
+                        return Math.sqrt(dx * dx + dy * dy);
+                    });
+    
+                    // Calculate the maximum and minimum distances based on the initial distances
+                    model.maxDistance = Math.max(...model.distances);
+                    model.minDistance = Math.min(...model.distances);
                 }
-        
+    
                 // Adjust the scale factor based on the current scaling direction
                 let scaleChange = scaleSpeed * delta_time;
                 if (model.isGrowing) {
@@ -200,37 +218,30 @@ class Renderer {
                 } else {
                     model.currentScale -= scaleChange; // Shrink
                 }
-        
+    
                 // Check if we've reached the scaling bounds, and flip the scaling direction if so
-                if (model.currentScale > maxScale) {
+                if (model.currentScale > maxScaleFactor) {
                     model.isGrowing = false;
-                    model.currentScale = maxScale; // Ensure scale does not exceed maxScale
-                } else if (model.currentScale < minScale) {
+                    model.currentScale = maxScaleFactor; // Ensure scale does not exceed maxScale
+                } else if (model.currentScale < minScaleFactor) {
                     model.isGrowing = true;
-                    model.currentScale = minScale; // Ensure scale does not fall below minScale
+                    model.currentScale = minScaleFactor; // Ensure scale does not fall below minScale
                 }
-        
+    
                 // Apply the current scale to the model
-                // Assuming you have a center for scaling; calculate if not already done
-                let centerX = 0;
-                let centerY = 0;
-                model.vertices.forEach(vertex => {
-                    centerX += vertex.values[0][0];
-                    centerY += vertex.values[1][0];
-                });
-                centerX /= model.vertices.length;
-                centerY /= model.vertices.length;
-        
-                model.vertices = model.vertices.map(vertex => {
-                    let x = vertex.values[0][0] - centerX;
-                    let y = vertex.values[1][0] - centerY;
-        
-                    // Apply current scale
-                    let scaledX = x * model.currentScale;
-                    let scaledY = y * model.currentScale;
-        
-                    // Translate back to original position with scaled dimensions
-                    return CG.Vector3(scaledX + centerX, scaledY + centerY, 1);
+                model.vertices = model.vertices.map((vertex, i) => {
+                    const dx = vertex.values[0][0] - model.center.x;
+                    const dy = vertex.values[1][0] - model.center.y;
+                    const originalDistance = model.distances[i];
+                    
+                    // Calculate the new position based on the original distances and scaled distance
+                    const scaledDistance = originalDistance * model.currentScale;
+                    const scaleRatio = scaledDistance / originalDistance;
+    
+                    const scaledX = model.center.x + dx * scaleRatio;
+                    const scaledY = model.center.y + dy * scaleRatio;
+    
+                    return CG.Vector3(scaledX, scaledY, 1);
                 });
             });
         }
