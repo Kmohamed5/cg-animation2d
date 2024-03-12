@@ -37,15 +37,31 @@ class Renderer {
                         CG.Vector3(300, 300, 1)
                     ],
                     transform: CG.mat3x3Identity
+                },
+                
+            ],
+            slide1: [
+                // First diamond
+                {
+                    vertices: [
+                        CG.Vector3(200, 150, 1),
+                        CG.Vector3(300, 300, 1),
+                        CG.Vector3(200, 450, 1),
+                        CG.Vector3(100, 300, 1)
+                    ],
+                    transform: new Matrix(3, 3)
+                },
+                // Second diamond
+                {
+                    vertices: [
+                        CG.Vector3(600, 150, 1),
+                        CG.Vector3(700, 300, 1),
+                        CG.Vector3(600, 450, 1),
+                        CG.Vector3(500, 300, 1)
+                    ],
+                    transform: new Matrix(3, 3)
                 }
             ],
-            slide1: [{vertices: [
-                CG.Vector3(400, 150, 1),
-                CG.Vector3(500, 300, 1),
-                CG.Vector3(400, 450, 1),
-                CG.Vector3(300, 300, 1)
-            ],
-                    transform:new Matrix(3, 3) }],
             slide2: [{vertices: [
                 CG.Vector3(400, 150, 1),
                 CG.Vector3(500, 300, 1),
@@ -134,10 +150,11 @@ class Renderer {
         }
         if (this.slide_idx === 1) {
             this.models.slide1.forEach((model, index) => {
-                // Define angular velocity for rotation (adjust as needed)
-                let angularVelocity = 0.002; // Radians per millisecond, adjust as needed
+                // Define angular velocity for rotation
+                let angularVelocity = (index === 0) ? 0.0001 : 0.00001; // Adjust rotation speed as needed
+    
                 let theta = angularVelocity * time; // Calculate rotation angle
-        
+    
                 // Calculate the center of the polygon for rotation around its own center
                 let centerX = 0;
                 let centerY = 0;
@@ -147,80 +164,76 @@ class Renderer {
                 });
                 centerX /= model.vertices.length;
                 centerY /= model.vertices.length;
-        
-                // Apply rotation transformation only
+    
+                // Apply rotation transformation
                 model.vertices = model.vertices.map(vertex => {
                     let x = vertex.values[0][0] - centerX;
                     let y = vertex.values[1][0] - centerY;
-        
+    
                     // Apply rotation around the center
                     let rotatedX = x * Math.cos(theta) - y * Math.sin(theta);
                     let rotatedY = x * Math.sin(theta) + y * Math.cos(theta);
-        
+    
                     // Translate back
                     return CG.Vector3(rotatedX + centerX, rotatedY + centerY, 1);
                 });
             });
         }
         if (this.slide_idx === 2) {
-            const scaleSpeed = 0.0000005;
-            const maxScale = 1.5;  // Maximum scale factor
-            const minScale = 0.5;  // Minimum scale factor
-    
+            // Define constants for scaling
+            const scaleSpeed = 0.0005; // Control the rate of scale change per millisecond
+            // Adjust maxScale to ensure the polygon does not grow too big
+            const maxScale = 1.2; // Adjusted maximum scale factor to prevent exceeding screen size
+            const minScale = 0.8; // Adjust if you also want to change the minimum size
+        
             this.models.slide2.forEach((model, index) => {
-                // Clone the original vertices to preserve them
-                const originalVertices = model.vertices.map(vertex => CG.Vector3(vertex.values[0][0], vertex.values[1][0], vertex.values[2][0]));
-    
-                let scale = Math.sin(time * scaleSpeed) * (maxScale - minScale) / 2 + (maxScale + minScale) / 2;
-    
-                // Calculate the center of the shape
-                const center = originalVertices.reduce((acc, vertex) => {
-                    acc.x += vertex.values[0][0];
-                    acc.y += vertex.values[1][0];
-                    return acc;
-                }, { x: 0, y: 0 });
-    
-                center.x /= originalVertices.length;
-                center.y /= originalVertices.length;
-    
-                // Apply the scale factor to the original vertices, keeping it centered
-                model.vertices = originalVertices.map(vertex => {
-                    const originalX = vertex.values[0][0];
-                    const originalY = vertex.values[1][0];
-    
-                    // Translate to the origin, scale, and then translate back
-                    const scaledX = (originalX - center.x) * scale + center.x;
-                    const scaledY = (originalY - center.y) * scale + center.y;
-    
-                    return CG.Vector3(scaledX, scaledY, 1);
+                // Initialize isGrowing and currentScale if they don't exist
+                if (model.isGrowing === undefined) {
+                    model.isGrowing = true; // Default to growing
+                    model.currentScale = (maxScale + minScale) / 2; // Starting scale is midway between min and max
+                }
+        
+                // Adjust the scale factor based on the current scaling direction
+                let scaleChange = scaleSpeed * delta_time;
+                if (model.isGrowing) {
+                    model.currentScale += scaleChange; // Grow
+                } else {
+                    model.currentScale -= scaleChange; // Shrink
+                }
+        
+                // Check if we've reached the scaling bounds, and flip the scaling direction if so
+                if (model.currentScale > maxScale) {
+                    model.isGrowing = false;
+                    model.currentScale = maxScale; // Ensure scale does not exceed maxScale
+                } else if (model.currentScale < minScale) {
+                    model.isGrowing = true;
+                    model.currentScale = minScale; // Ensure scale does not fall below minScale
+                }
+        
+                // Apply the current scale to the model
+                // Assuming you have a center for scaling; calculate if not already done
+                let centerX = 0;
+                let centerY = 0;
+                model.vertices.forEach(vertex => {
+                    centerX += vertex.values[0][0];
+                    centerY += vertex.values[1][0];
                 });
-    
-                // Ensure the scale does not exceed the limits
-                const clampedScale = Math.min(maxScale, Math.max(minScale, scale));
-    
-                // Apply the clamped scale factor to the vertices
-                model.vertices = originalVertices.map(vertex => {
-                    const originalX = vertex.values[0][0];
-                    const originalY = vertex.values[1][0];
-                
-                    // Translate to the origin, scale, and then translate back
-                    const clampedScaledX = (originalX - center.x) * clampedScale + center.x;
-                    const clampedScaledY = (originalY - center.y) * clampedScale + center.y;
-                
-                    return CG.Vector3(clampedScaledX, clampedScaledY, 1);
-                });
-                
-                // Update the model's vertices with the clamped values
-                model.vertices.forEach((vertex, index) => {
-                    vertex.values[0][0] = model.vertices[index].values[0][0];
-                    vertex.values[1][0] = model.vertices[index].values[1][0];
-                    vertex.values[2][0] = model.vertices[index].values[2][0];
+                centerX /= model.vertices.length;
+                centerY /= model.vertices.length;
+        
+                model.vertices = model.vertices.map(vertex => {
+                    let x = vertex.values[0][0] - centerX;
+                    let y = vertex.values[1][0] - centerY;
+        
+                    // Apply current scale
+                    let scaledX = x * model.currentScale;
+                    let scaledY = y * model.currentScale;
+        
+                    // Translate back to original position with scaled dimensions
+                    return CG.Vector3(scaledX + centerX, scaledY + centerY, 1);
                 });
             });
         }
-        
-        
-        
     }
     
     //
@@ -268,18 +281,19 @@ class Renderer {
 
     //
     drawSlide2() {
-            // Clear previous drawings
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        // Clear previous drawings
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Set color
-        let teal = [0, 128, 128, 255]; 
+    // Set color
+    let teal = [0, 128, 128, 255]; 
 
-        // Draw the polygons
-        this.models.slide2.forEach(model => {
-            this.drawConvexPolygon(model.vertices, teal);
-        });
+    // Draw the polygons
+    this.models.slide2.forEach(model => {
+        this.drawConvexPolygon(model.vertices, teal);
+    });
 
-    }
+}
+    
 
     //
     drawSlide3() {
