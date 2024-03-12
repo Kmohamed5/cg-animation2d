@@ -260,10 +260,10 @@ class Renderer {
 
                     if(model[0].Growing <= 50){
     
-                    CG.mat3x3Translate(model[0].transform3, model[0].centerX+model[0].Growing, model[0].centerY+model[0].Growing);
+                    CG.mat3x3Translate(model[0].transform3, model[0].centerX+(3*model[0].Growing), model[0].centerY);
                     
                     } else{
-                        CG.mat3x3Translate(model[0].transform3, model[0].centerX-model[0].Growing+(model[0].Buffer+50), model[0].centerY-model[0].Growing+(model[0].Buffer+50));
+                        CG.mat3x3Translate(model[0].transform3, model[0].centerX-(3*model[0].Growing)+(model[0].Buffer+50), model[0].centerY);
                         
                         model[0].Buffer--;
                         if (model[0].Buffer <= 0) {
