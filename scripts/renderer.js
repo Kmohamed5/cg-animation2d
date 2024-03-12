@@ -62,21 +62,52 @@ class Renderer {
                     transform: new Matrix(3, 3)
                 }
             ],
-            slide2: [{vertices: [
-                CG.Vector3(400, 150, 1),
-                CG.Vector3(500, 300, 1),
-                CG.Vector3(400, 450, 1),
-                CG.Vector3(300, 300, 1)
-                
+            slide2:  [
+                {
+                    Diamond1: [ CG.Vector3(600, 150, 1),
+                        CG.Vector3(700, 300, 1),
+                        CG.Vector3(600, 450, 1),
+                        CG.Vector3(500, 300, 1)],
+                    transform1: new Matrix(3,3),
+                    transform2: new Matrix(3,3),
+                    transform3: new Matrix(3,3),
+                    centerX: 450,
+                    centerY: 350,
+                    Growing: 0,
+                    Buffer: 50
+                },
+                {
+                    Diamond2: [CG.Vector3(200, 150, 1),
+                    CG.Vector3(300, 300, 1),
+                    CG.Vector3(200, 450, 1),
+                    CG.Vector3(100, 300, 1)],
+                    transform1: new Matrix(3,3),
+                    transform2: new Matrix(3,3),
+                    transform3: new Matrix(3,3),
+                    centerX: 200,
+                    centerY: 150,
+                    Growing: 0,
+                    Buffer: 50
+                }
             ],
-                    transform:new Matrix(3, 3)}],
-            slide3: [{vertices: [
-                CG.Vector3(400, 150, 1),
-                CG.Vector3(500, 300, 1),
-                CG.Vector3(400, 450, 1),
-                CG.Vector3(300, 300, 1)
+            slide3: [
+                {
+                    Diamond: [CG.Vector3(200, 150, 1),
+                        CG.Vector3(300, 300, 1),
+                        CG.Vector3(200, 450, 1),
+                        CG.Vector3(100, 300, 1)],
+                        transform1: new Matrix(3,3),
+                        transform2: new Matrix(3,3),
+                        transform3: new Matrix(3,3),
+                        transform4: new Matrix(3,3),
+                        transform5: new Matrix(3,3),
+                        transform6: new Matrix(3,3),
+                        centerX: 200,
+                        centerY: 150,
+                        Growing: 0,
+                        Buffer: 50
+                }
             ],
-                    transform:new Matrix(3, 3) }],
         };
     }
 
@@ -180,72 +211,72 @@ class Renderer {
             });
         }
         if (this.slide_idx === 2) {
-            const scaleSpeed = 0.0005; // Control the rate of scale change per millisecond
-            const maxScaleFactor = 1.2; // Adjusted maximum scale factor to prevent exceeding screen size
-            const minScaleFactor = 0.8; // Adjust if you also want to change the minimum size
-    
-            this.models.slide2.forEach((model, index) => {
-                // Initialize isGrowing and currentScale if they don't exist
-                if (model.isGrowing === undefined) {
-                    model.isGrowing = true; // Default to growing
-                    model.currentScale = 1.0; // Starting scale is 1.0
-    
-                    // Calculate the initial center of the shape
-                    model.center = { x: 0, y: 0 };
-                    model.vertices.forEach(vertex => {
-                        model.center.x += vertex.values[0][0];
-                        model.center.y += vertex.values[1][0];
-                    });
-                    model.center.x /= model.vertices.length;
-                    model.center.y /= model.vertices.length;
-    
-                    // Calculate the initial distances from the center for each vertex
-                    model.distances = model.vertices.map(vertex => {
-                        const dx = vertex.values[0][0] - model.center.x;
-                        const dy = vertex.values[1][0] - model.center.y;
-                        return Math.sqrt(dx * dx + dy * dy);
-                    });
-    
-                    // Calculate the maximum and minimum distances based on the initial distances
-                    model.maxDistance = Math.max(...model.distances);
-                    model.minDistance = Math.min(...model.distances);
-                }
-    
-                // Adjust the scale factor based on the current scaling direction
-                let scaleChange = scaleSpeed * delta_time;
-                if (model.isGrowing) {
-                    model.currentScale += scaleChange; // Grow
+            let model = this.models.slide2;
+
+                CG.mat3x3Translate(model[0].transform1, -model[0].centerX, -model[0].centerY); 
+                CG.mat3x3Translate(model[1].transform1, -model[1].centerX, -model[1].centerY); 
+
+                if (model[0].Growing <= 50) {
+                    CG.mat3x3Scale(model[0].transform2, model[0].Growing / 20 + Math.sin(delta_time / 300), model[0].Growing / 20 + Math.cos(delta_time / 40));
+                    CG.mat3x3Scale(model[1].transform2, model[0].Growing / 10 + Math.sin(delta_time / 500), model[0].Growing / 20 + Math.cos(delta_time / 100));
+                    model[0].Growing++;
+                    if (model[0].Growing >= 50) {
+                        model[0].Buffer = 50;
+                    }
                 } else {
-                    model.currentScale -= scaleChange; // Shrink
+                    CG.mat3x3Scale(model[0].transform2, model[0].Buffer / 20 + Math.sin(delta_time / 300), model[0].Buffer / 20 + Math.cos(delta_time / 40));
+                    CG.mat3x3Scale(model[1].transform2, model[0].Buffer / 10 + Math.sin(delta_time / 500), model[0].Buffer / 20 + Math.cos(delta_time / 100));
+                    model[0].Buffer--;
+                    if (model[0].Buffer <= 0) {
+                        model[0].Growing = 0;
+                    }
                 }
+
+                CG.mat3x3Translate(model[0].transform3, model[0].centerX, model[0].centerY);
+                CG.mat3x3Translate(model[1].transform3, model[1].centerX, model[1].centerY);
+                
+            }
+            if (this.slide_idx === 3) {
+                let model = this.models.slide3;
     
-                // Check if we've reached the scaling bounds, and flip the scaling direction if so
-                if (model.currentScale > maxScaleFactor) {
-                    model.isGrowing = false;
-                    model.currentScale = maxScaleFactor; // Ensure scale does not exceed maxScale
-                } else if (model.currentScale < minScaleFactor) {
-                    model.isGrowing = true;
-                    model.currentScale = minScaleFactor; // Ensure scale does not fall below minScale
-                }
+                    CG.mat3x3Translate(model[0].transform1, -model[0].centerX, -model[0].centerY); 
+                    let rotationAngle = Math.PI / 180 * 2;
     
-                // Apply the current scale to the model
-                model.vertices = model.vertices.map((vertex, i) => {
-                    const dx = vertex.values[0][0] - model.center.x;
-                    const dy = vertex.values[1][0] - model.center.y;
-                    const originalDistance = model.distances[i];
+                    if (model[0].Growing <= 50) {
+                        CG.mat3x3Scale(model[0].transform2, model[0].Growing / 20 + Math.sin(delta_time / 300), model[0].Growing / 20 + Math.cos(delta_time / 40));
+                        CG.mat3x3Rotate(model[0].transform3, rotationAngle)
+                        model[0].Growing++;
+                        if (model[0].Growing >= 50) {
+                            model[0].Buffer = 50;
+                        }
+                    } else {
+                        CG.mat3x3Scale(model[0].transform2, model[0].Buffer / 20 + Math.sin(delta_time / 300), model[0].Buffer / 20 + Math.cos(delta_time / 40));
+                        CG.mat3x3Rotate(model[0].transform3, -rotationAngle)
+                        model[0].Buffer--;
+                        if (model[0].Buffer <= 0) {
+                            model[0].Growing = 0;
+                        }
+                    }
+
+                    if(model[0].Growing <= 50){
+    
+                    CG.mat3x3Translate(model[0].transform3, model[0].centerX+model[0].Growing, model[0].centerY+model[0].Growing);
                     
-                    // Calculate the new position based on the original distances and scaled distance
-                    const scaledDistance = originalDistance * model.currentScale;
-                    const scaleRatio = scaledDistance / originalDistance;
-    
-                    const scaledX = model.center.x + dx * scaleRatio;
-                    const scaledY = model.center.y + dy * scaleRatio;
-    
-                    return CG.Vector3(scaledX, scaledY, 1);
-                });
-            });
+                    } else{
+                        CG.mat3x3Translate(model[0].transform3, model[0].centerX-model[0].Growing+(model[0].Buffer+50), model[0].centerY-model[0].Growing+(model[0].Buffer+50));
+                        
+                        model[0].Buffer--;
+                        if (model[0].Buffer <= 0) {
+                            model[0].Growing = 0;
+                        }
+
+                    }
+
+                    
+                    
+                }
         }
-    }
+    
     
     //
     drawSlide() {
@@ -292,28 +323,48 @@ class Renderer {
 
     //
     drawSlide2() {
-        // Clear previous drawings
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        // TODO: draw at least 2 polygons grow and shrink about their own centers
+        //   - have each polygon grow / shrink different sizes
+        //   - try at least 1 polygon that grows / shrinks non-uniformly in the x and y directions
+        
+        let teal = [0, 128, 128, 255];
+        let newDia1 = [];
+        let newDia2 = [];
+        let model = this.models.slide2;
 
-    // Set color
-    let teal = [0, 128, 128, 255]; 
+        for(let i=0; i<model[0].Diamond1.length; i++) {
+            let p = model[0].Diamond1[i];
+            p = Matrix.multiply([model[0].transform1, p]);
+            p = Matrix.multiply([model[0].transform2, p]);
+            newDia1.push(Matrix.multiply([model[0].transform3, p]));
+        }
+        this.drawConvexPolygon(newDia1, teal);
 
-    // Draw the polygons
-    this.models.slide2.forEach(model => {
-        this.drawConvexPolygon(model.vertices, teal);
-    });
+        for(let i=0; i<model[1].Diamond2.length; i++) {
+            let p = model[1].Diamond2[i];
 
-}
+            p = Matrix.multiply([model[1].transform1, p]);
+            p = Matrix.multiply([model[1].transform2, p]);
+            newDia2.push(Matrix.multiply([model[1].transform3,p]));
+            
+        }
+        this.drawConvexPolygon(newDia2, teal);
+    }
     
 
     //
     drawSlide3() {
-        // TODO: get creative!
-        //   - animation should involve all three basic transformation types
-        //     (translation, scaling, and rotation)
-        
         let teal = [0, 128, 128, 255];
-        this.drawConvexPolygon(this.models.slide3[0].vertices, teal);
+        let newDia1 = [];
+        let model = this.models.slide3;
+
+        for(let i=0; i<model[0].Diamond.length; i++) {
+            let p = model[0].Diamond[i];
+            p = Matrix.multiply([model[0].transform1, p]);
+            p = Matrix.multiply([model[0].transform2, p]);
+            newDia1.push(Matrix.multiply([model[0].transform3, p]));
+        }
+        this.drawConvexPolygon(newDia1, teal);
     }
     
     // vertex_list:  array of object [Matrix(3, 1), Matrix(3, 1), ..., Matrix(3, 1)]
